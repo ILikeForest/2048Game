@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #game-container {
+            text-align: center;
+            position: relative;
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(4, 120px);
+            grid-gap: 15px;
+            margin-top: 20px;
+        }
+
+        .tile {
+            width: 120px;
+            height: 120px;
+            background-color: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            transition: all 0.1s ease-in-out;
+        }
+
+        #gameOverMessageContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 2;
+            display: none;
+        }
+
+        #gameOverMessage {
+            font-size: 48px;
+            font-weight: bold;
+            color: red;
+            margin-top: 20px;
+        }
+
+        #restartButton {
+            font-size: 24px;
+            padding: 10px 20px;
+            margin-top: 20px;
+            cursor: pointer;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        #restartButton:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <h1>2048 Game</h1>
+        <div id="board"></div>
+        <div id="gameOverMessageContainer">
+            <div id="gameOverMessage"></div>
+            <button id="restartButton" onclick="restartGame()">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const board = document.getElementById('board');
+        const gameOverMessageContainer = document.getElementById('gameOverMessageContainer');
+        const gameOverMessage = document.getElementById('gameOverMessage');
+        const restartButton = document.getElementById('restartButton');
+        const tiles = [];
+
+        // Initialize the board
+        function initializeBoard() {
+            for (let i = 0; i < 4; i++) {
+                tiles[i] = [];
+                for (let j = 0; j < 4; j++) {
+                    tiles[i][j] = 0;
+                }
+            }
+            addTile();
+            addTile();
+            updateBoard();
+        }
+
+        // Add a new tile to a random empty spot
+        function addTile() {
+            const emptySpots = [];
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    if (tiles[i][j] === 0) {
+                        emptySpots.push({ row: i, col: j });
+                    }
+                }
+            }
+
+            if (emptySpots.length > 0) {
+                const spot = emptySpots[Math.floor(Math.random() * emptySpots.length)];
+                tiles[spot.row][spot.col] = Math.random() < 0.9 ? 2 : 4;
+            }
+        }
+
+        // Update the display of the board
+        function updateBoard() {
+            board.innerHTML = '';
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.textContent = tiles[i][j] !== 0 ? tiles[i][j] : '';
+                    board.appendChild(tile);
+                }
+            }
+        }
+
+        // Handle keyboard input
+        document.addEventListener('keydown', function (event) {
+            // 방향키 입력일 때만 새로운 숫자 생성
+            const originalBoard = JSON.parse(JSON.stringify(tiles));
+            if (event.key === 'ArrowUp') {
+                moveUp();
+            } else if (event.key === 'ArrowDown') {
+                moveDown();
+            } else if (event.key === 'ArrowLeft') {
+                moveLeft();
+            } else if (event.key === 'ArrowRight') {
+                moveRight();
+            }
+            if (!arraysEqual(originalBoard, tiles)) {
+                addTile();
+            }
+            updateBoard();
+            checkGameOver();
+        });
+
+
+        // Move functions
+        function moveUp() {
+            for (let j = 0; j < 4; j++) {
+                for (let i = 1; i < 4; i++) {
+                    if (tiles[i][j] !== 0) {
+                        let row = i;
+                        while (row > 0 && (tiles[row - 1][j] === 0 || tiles[row - 1][j] === tiles[row][j])) {
+                            if (tiles[row - 1][j] === tiles[row][j]) {
+                                // 같은 숫자가 만나면 합치는 로직
+                                tiles[row - 1][j] *= 2;
+                                tiles[row][j] = 0;
+                                break; // 합쳐지면 더 이상 위로 이동하지 않도록 break
+                            } else {
+                                // 이동 로직
+                                tiles[row - 1][j] = tiles[row][j];
+                                tiles[row][j] = 0;
+                            }
+                            row--;
+                        }
+                    }
+                }
+            }
+        }
+
+
+        function moveDown() {
+            for (let j = 0; j < 4; j++) {
+                for (let i = 2; i >= 0; i--) {
+                    if (tiles[i][j] !== 0) {
+                        let row = i;
+                        while (row < 3 && (tiles[row + 1][j] === 0 || tiles[row + 1][j] === tiles[row][j])) {
+                            if (tiles[row + 1][j] === tiles[row][j]) {
+                                // 같은 숫자가 만나면 합치는 로직
+                                tiles[row + 1][j] *= 2;
+                                tiles[row][j] = 0;
+                                break; // 합쳐지면 더 이상 아래로 이동하지 않도록 break
+                            } else {
+                                // 이동 로직
+                                tiles[row + 1][j] = tiles[row][j];
+                                tiles[row][j] = 0;
+                            }
+                            row++;
+                        }
+                    }
+                }
+            }
+        }
+
+        function moveRight() {
+            for (let i = 0; i < 4; i++) {
+                for (let j = 2; j >= 0; j--) {
+                    if (tiles[i][j] !== 0) {
+                        let col = j;
+                        while (col < 3 && (tiles[i][col + 1] === 0 || tiles[i][col + 1] === tiles[i][col])) {
+                            if (tiles[i][col + 1] === tiles[i][col]) {
+                                // 같은 숫자가 만나면 합치는 로직
+                                tiles[i][col + 1] *= 2;
+                                tiles[i][col] = 0;
+                                break; // 합쳐지면 더 이상 오른쪽으로 이동하지 않도록 break
+                            } else {
+                                // 이동 로직
+                                tiles[i][col + 1] = tiles[i][col];
+                                tiles[i][col] = 0;
+                            }
+                            col++;
+                        }
+                    }
+                }
+            }
+        }
+
+        function moveLeft() {
+            for (let i = 0; i < 4; i++) {
+                for (let j = 1; j < 4; j++) {
+                    if (tiles[i][j] !== 0) {
+                        let col = j;
+                        while (col > 0 && (tiles[i][col - 1] === 0 || tiles[i][col - 1] === tiles[i][col])) {
+                            if (tiles[i][col - 1] === tiles[i][col]) {
+                                // 같은 숫자가 만나면 합치는 로직
+                                tiles[i][col - 1] *= 2;
+                                tiles[i][col] = 0;
+                                break; // 합쳐지면 더 이상 왼쪽으로 이동하지 않도록 break
+                            } else {
+                                // 이동 로직
+                                tiles[i][col - 1] = tiles[i][col];
+                                tiles[i][col] = 0;
+                            }
+                            col--;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 현재 상태에서 더 이상 움직일 수 없는지 확인
+        function isGameOver() {
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    // 빈 공간이 있거나 어떤 타일과도 합칠 수 있는 경우 게임은 계속됩니다.
+                    if (tiles[i][j] === 0 ||
+                        (i > 0 && tiles[i][j] === tiles[i - 1][j]) ||
+                        (i < 3 && tiles[i][j] === tiles[i + 1][j]) ||
+                        (j > 0 && tiles[i][j] === tiles[i][j - 1]) ||
+                        (j < 3 && tiles[i][j] === tiles[i][j + 1])) {
+                        return false; // 더 이상 움직일 수 없는 상태가 아닙니다.
+                    }
+                }
+            }
+            return true; // 더 이상 움직일 수 없는 상태입니다.
+        }
+
+        // Check for game over and display message
+        function checkGameOver() {
+            if (isGameOver()) {
+                gameOverMessage.textContent = 'Game Over!';
+                gameOverMessageContainer.style.display = 'flex';
+            }
+        }
+
+        // Restart the game
+        function restartGame() {
+            initializeBoard();
+            gameOverMessageContainer.style.display = 'none';
+        }
+
+        // Utility function to check if two arrays are equal
+        function arraysEqual(arr1, arr2) {
+            return JSON.stringify(arr1) === JSON.stringify(arr2);
+        }
+
+        // Handle keyboard input
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'ArrowUp') {
+                moveUp();
+            } else if (event.key === 'ArrowDown') {
+                moveDown();
+            } else if (event.key === 'ArrowLeft') {
+                moveLeft();
+            } else if (event.key === 'ArrowRight') {
+                moveRight();
+            }
+            addTile();
+            updateBoard();
+            checkGameOver(); // 움직임 후 게임 오버 확인
+        });
+
+// 초기 게임 보드 설정
+initializeBoard();
+
+
+        // Initialize the board when the page loads
+        initializeBoard();
+    </script>
+</body>
+</html>
